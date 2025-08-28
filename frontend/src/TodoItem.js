@@ -13,7 +13,7 @@ export default function TodoItem({ todo, onDelete }) {
   return (
     <li style={item}>
       <span style={textStyle}>{todo.text}</span>
-      <button style={delBtn} onClick={() => onDelete(todo.id)}>Delete</button>
+      <button style={delBtn} onClick={() => onDelete(todo._id)}>Delete</button>
     </li>
   );
 }

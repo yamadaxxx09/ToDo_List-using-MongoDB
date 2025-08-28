@@ -1,3 +1,6 @@
+require('dotenv').config();
+const { MongoClient, ObjectId } = require('mongodb');
+
 const express = require('express');
 const cors = require('cors');
 
@@ -7,42 +10,44 @@ const PORT = 5000;
 app.use(cors());
 app.use(express.json());
 
-let todos = [
-  { id: 1, text: 'Learn React' },
-  { id: 2, text: 'Build a server with Express' },
-  { id: 3, text: 'Connect frontend and backend' },
-];
+let todosCol;
 
 app.get('/', (req, res) => {
-  res.send('Todo API is running. Try GET /api/todos');
+  res.send('Todo API is running with MongoDB. Try GET /api/todos');
 });
 
-app.get('/api/todos', (req, res) => {
-  res.json(todos);
+app.get('/api/todos', async (req, res) => {
+  const todos = await todosCol.find({}).toArray();
+  res.json(todos.map(t => ({ ...t, _id: t._id.toString() })));
 });
 
-app.post('/api/todos', (req, res) => {
-  console.log('POST /api/todos body =', req.body); 
+app.post('/api/todos', async (req, res) => {
   const { text } = req.body;
   if (!text || !text.trim()) {
     return res.status(400).json({ error: 'text is required' });
   }
-  const newTodo = { id: Date.now(), text: text.trim() };
-  todos.push(newTodo);
-  res.status(201).json(newTodo);
+  const result = await todosCol.insertOne({ text: text.trim() });
+  res.status(201).json({ _id: result.insertedId.toString(), text: text.trim() });
 });
 
-
-app.delete('/api/todos/:id', (req, res) => {
-  const id = Number(req.params.id);
-  const before = todos.length;
-  todos = todos.filter(t => t.id !== id);
-  if (todos.length === before) {
-    return res.status(404).json({ error: 'not found' });
+app.delete('/api/todos/:id', async (req, res) => {
+  const { id } = req.params;
+  if (!ObjectId.isValid(id)) {
+    return res.status(400).json({ error: 'invalid id' });
   }
+  const r = await todosCol.deleteOne({ _id: new ObjectId(id) });
+  if (r.deletedCount === 0) return res.status(404).json({ error: 'not found' });
   res.json({ ok: true });
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-});
+async function start() {
+  const client = new MongoClient(process.env.MONGODB_URI);
+  await client.connect();
+  const db = client.db(process.env.DB_NAME || 'todo_db');
+  todosCol = db.collection('todos');
+  app.listen(PORT, () => {
+    console.log(`Server running on http://localhost:${PORT}`);
+  });
+}
+
+start().catch(err => console.error(err));

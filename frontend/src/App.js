@@ -20,11 +20,7 @@ function App() {
       headers: { 'Content-Type':'application/json' },
       body: JSON.stringify({ text })
     });
-    if (!res.ok) {
-      const msg = await res.text();         
-      alert(`Add failed: ${res.status} ${msg}`);
-      return;
-    }
+    if (!res.ok) { alert('Add failed'); return; }
     const item = await res.json();
     setTodos(prev => [...prev, item]);
   };
@@ -32,12 +28,12 @@ function App() {
 
   const deleteTodo = async (id) => {
     const res = await fetch(`${BASE}/api/todos/${id}`, { method: 'DELETE' });
-    if (!res.ok) {
+    if (!res.ok) { 
       const msg = await res.text();
-      alert(`Delete failed: ${res.status} ${msg}`);
-      return;
+      alert(`Delete failed ${res.status} ${msg}`); 
+      return; 
     }
-    setTodos(prev => prev.filter(t => t.id !== id));
+    setTodos(prev => prev.filter(t => t._id !== id));
   };
 
   return (
